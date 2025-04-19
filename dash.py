@@ -2,17 +2,26 @@ import pandas as pd
 import streamlit as st 
 import plotly.express as px 
 
+dfs = []
 
-#Leitura do DataFrame
-df = pd.read_csv("DadosClientes.csv",encoding='latin1')
-#Exclsão de Linhas vazias
-df = df.dropna(how="all", axis=1)
+with st.sidebar:
+    uploaded_files = st.file_uploader(
+        "Coloquei seu arquivo CSV", accept_multiple_files=True
+    )
 
-#Conversão das colunas Object para String
-df["Status"] = df["Status"].astype('string')
-df["Tipo"] = df["Tipo"].astype('string')
-df.info()
+    #Leitura e Importação do DataFrame
+    for uploaded_file in uploaded_files:
+        #Leitura do DataFrame do arquivo
+        df = pd.read_csv(uploaded_file, encoding='utf-8')
+        
+        #Exclsão de Linhas vazias
+        df = df.dropna(how="all", axis=1)
 
+        #Conversão das colunas Object para String
+        df["Status"] = df["Status"].astype('string')
+        df["Tipo"] = df["Tipo"].astype('string')
+        
+        dfs.append(df)
 
 #Arrays de todas as colunas do dataframe para utilização no select e no multiselect
 # de forma que vao agir dinamicamente  
@@ -31,10 +40,11 @@ OPÇÕES_PRINCIPAIS = {
 
 #Criação da função dinamica para gerar graficos conforme a seleção do usuario
 def DashBoardUsu(coluna_x, coluna_y, box):
-    if coluna_x in df.columns and coluna_y in df.columns:
-        if pd.api.types.is_numeric_dtype(df[coluna_x]) and pd.api.types.is_numeric_dtype(df[coluna_y]):
-            linha = px.line(df, x=coluna_x, y=coluna_y, title=f"{coluna_x} X {coluna_y}")
-            box.plotly_chart(linha)
+    for df in dfs:
+        if coluna_x in df.columns and coluna_y in df.columns:
+            if pd.api.types.is_numeric_dtype(df[coluna_x]) and pd.api.types.is_numeric_dtype(df[coluna_y]):
+                linha = px.line(df, x=coluna_x, y=coluna_y, title=f"{coluna_x} X {coluna_y}")
+                box.plotly_chart(linha)
         
 #Criação do select principal
 with st.sidebar:
