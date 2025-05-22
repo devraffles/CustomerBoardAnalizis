@@ -39,7 +39,7 @@ OPÇÕES_PRINCIPAIS = {
 }
 
 #Criação da função dinamica para gerar graficos conforme a seleção do usuario
-def DashBoardUsu(coluna_x, coluna_y, box):
+def DashBoard(coluna_x, coluna_y, box):
     for df in dfs:
         if coluna_x in df.columns and coluna_y in df.columns:
             if pd.api.types.is_numeric_dtype(df[coluna_x]) and pd.api.types.is_numeric_dtype(df[coluna_y]):
@@ -78,5 +78,5 @@ if add_select == "Usuario":
     
     #Chamada da função
     if add_select_usu and usu_select_all:
-        DashBoardUsu(add_select_usu, usu_select_all[0], col1)
+        DashBoard(add_select_usu, usu_select_all[0], col1)
 
