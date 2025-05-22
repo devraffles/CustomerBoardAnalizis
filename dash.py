@@ -28,7 +28,7 @@ with st.sidebar:
 OPÇÕES_PRINCIPAIS = {
     "Principal": ["Usuario", "Armazenamento", "CDN", "Vizualização"],
     "Usuario": {
-        "Usuarios_Geral": ["Usuarios ativos", "Usuariosinativos", "Total de usuarios", "Limite de usuarios"],
+        "Usuarios_Geral": ["Usuarios ativos", "Usuarios inativos", "Total de usuarios", "Limite de usuarios"],
         "Conteudos_relacionados_Usuario": [
             "Status", "Armazenamento (GB)", "Limite de armazenamento_(GB)", "Armazenamento adicional (GB)",
             "Visualizacao (minutos)", "Limite visualizacao (minutos)", "Tipo",
