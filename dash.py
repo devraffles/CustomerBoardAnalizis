@@ -20,7 +20,13 @@ with st.sidebar:
         #Conversão das colunas Object para String
         df["Status"] = df["Status"].astype('string')
         df["Tipo"] = df["Tipo"].astype('string')
-        
+        df["Usuarios ativos"] = df["Usuarios ativos"].astype(float)
+        df["Usuarios inativos"] = df["Usuarios inativos"].astype(float)
+        df["Total de usuarios"] = df["Total de usuarios"].astype(float)
+        df["Limite de usuarios"] = df["Limite de usuarios"].astype(float)
+        df["Visualizacao (minutos)"] = df["Visualizacao (minutos)"].astype(float)
+        df["Duracao total dos videos (minutos)"] = df["Duracao total dos videos (minutos)"].astype(float)
+
         dfs.append(df)
 
 #Arrays de todas as colunas do dataframe para utilização no select e no multiselect
