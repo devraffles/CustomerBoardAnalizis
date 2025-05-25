@@ -6,7 +6,7 @@ dfs = []
 
 with st.sidebar:
     uploaded_files = st.file_uploader(
-        "Coloquei seu arquivo CSV", accept_multiple_files=True
+        "Coloque seu arquivo CSV", accept_multiple_files=True
     )
 
     #Leitura e Importação do DataFrame
@@ -26,63 +26,99 @@ with st.sidebar:
         df["Limite de usuarios"] = df["Limite de usuarios"].astype(float)
         df["Visualizacao (minutos)"] = df["Visualizacao (minutos)"].astype(float)
         df["Duracao total dos videos (minutos)"] = df["Duracao total dos videos (minutos)"].astype(float)
-
+        
         dfs.append(df)
 
 #Arrays de todas as colunas do dataframe para utilização no select e no multiselect
 # de forma que vao agir dinamicamente  
-OPÇÕES_PRINCIPAIS = {
-    "Principal": ["Usuario", "Armazenamento", "CDN", "Vizualização"],
-    "Usuario": {
-        "Usuarios_Geral": ["Usuarios ativos", "Usuarios inativos", "Total de usuarios", "Limite de usuarios"],
-        "Conteudos_relacionados_Usuario": [
-            "Status", "Armazenamento (GB)", "Limite de armazenamento_(GB)", "Armazenamento adicional (GB)",
-            "Visualizacao (minutos)", "Limite visualizacao (minutos)", "Tipo",
-            "Visualizacao adicional (minutos)", "CDN (Total) (GB)", "CDN (Videos) (GB)", "CDN (Imagens) (GB)",
-            "CDN (Downloads) (GB)", "CDN (Outros) (GB)", "Duracao total dos videos (minutos)"
-        ]
-    }
+opcao = {
+    "graficos": ["Linha", "Barras", "Pizza", "Dispersão", "Área", "Candlestick"],
+    "opcoes": [
+        "Instancia",
+        "Tipo",
+        "Status"
+    ],
+    "opcoes_filtro": [
+        "Usuarios ativos",
+        "Usuarios inativos",
+        "Total de usuarios",
+        "Limite de usuarios",
+        "Armazenamento (GB)",
+        "Limite de armazenamento_(GB)",
+        "Armazenamento adicional (GB)",
+        "Visualizacao (minutos)",
+        "Limite visualizacao (minutos)",
+        "Visualizacao adicional (minutos)",
+        "CDN (Total) (GB)",
+        "CDN (Videos) (GB)",
+        "CDN (Imagens) (GB)",
+        "CDN (Downloads) (GB)",
+        "CDN (Outros) (GB)",
+        "Duracao total dos videos (minutos)"
+    ]
 }
 
 #Criação da função dinamica para gerar graficos conforme a seleção do usuario
-def DashBoard(coluna_x, coluna_y, box):
+def DashBoard(coluna_x, coluna_y):
     for df in dfs:
         if coluna_x in df.columns and coluna_y in df.columns:
             if pd.api.types.is_numeric_dtype(df[coluna_x]) and pd.api.types.is_numeric_dtype(df[coluna_y]):
-                linha = px.line(df, x=coluna_x, y=coluna_y, title=f"{coluna_x} X {coluna_y}")
-                box.plotly_chart(linha)
+                
+                if add_select == "Linha":
+                    graph = px.line(df, x=coluna_x, y=coluna_y, color=df[select_usu_tipe], title=f"{coluna_x} X {coluna_y}")
+                    st.plotly_chart(graph)
+                    
+                if add_select == "Pizza":
+                    graph = px.pie(df, values=coluna_x, names=df[select_usu_tipe], title=f"{coluna_x}")
+                    graph.update_traces(textposition='inside', textinfo='percent+label')
+                    st.plotly_chart(graph)
+                    
+                    graph = px.pie(df, values=coluna_y, names=df[select_usu_tipe], title=f"{coluna_y}")
+                    graph.update_traces(textposition='inside', textinfo='percent+label')
+                    st.plotly_chart(graph)
         
 #Criação do select principal
 with st.sidebar:
     add_select = st.selectbox(
         "Selecione o tipo de grafico",
-        OPÇÕES_PRINCIPAIS["Principal"],
+        opcao["graficos"],
         index=None,
         placeholder="Clique e selecione", 
     )
+
+def filtro_box(filtro_escolhido = ""):
+    novos_itens = opcao["opcoes_filtro"]
+    try:
+        novos_itens.remove(filtro_escolhido)
+        return novos_itens
+    except:
+        return
+
+#Criação do sidebar de usuarios
+with st.sidebar:
+    select_usu_tipe = st.selectbox(
+        "Escolha seu tipo",
+        opcao["opcoes"],
+        index=None,
+        placeholder="Clique e selecione"
+    )
     
-#Criação da condicional de usuarios        
-if add_select == "Usuario":
-    #Criação das colunas no streamlit
-    col1, col2 = st.columns(2)  
+    add_filter = st.selectbox(
+        "Escolha seu filtro",
+        opcao["opcoes_filtro"],
+        index=None,
+        placeholder="Clique e selecione"
+    )
     
-    #Criação do sidebar de usuarios
-    with st.sidebar:
-        add_select_usu = st.selectbox(
-            "Escolha seu filtro",
-            OPÇÕES_PRINCIPAIS["Usuario"]["Usuarios_Geral"],
-            index=None,
-            placeholder="Clique e selecione",
-        )
-        
-        
-        #Criação do sidebar de multiselects que contrapõe o select de usuarios
-        usu_select_all = st.multiselect(
-            "Escolha seu filtro",
-            OPÇÕES_PRINCIPAIS["Usuario"]["Conteudos_relacionados_Usuario"]
-        )
-    
-    #Chamada da função
-    if add_select_usu and usu_select_all:
-        DashBoard(add_select_usu, usu_select_all[0], col1)
+    #Criação do sidebar de multiselects que contrapõe o select de usuarios
+    add_filter_coparacao = st.selectbox(
+        "Escolha seu filtro",
+        filtro_box(add_filter),
+        index=None,
+        placeholder="Clique e selecione"
+    )
+
+#Chamada da função
+if add_filter and add_filter_coparacao:
+    DashBoard(add_filter, add_filter_coparacao)
 
