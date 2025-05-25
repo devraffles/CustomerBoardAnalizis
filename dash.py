@@ -1,25 +1,25 @@
 import pandas as pd
-import streamlit as st 
-import plotly.express as px 
+import streamlit as st
+import plotly.express as px
+import plotly.graph_objects as go
 
+# Lista para armazenar os dataframes
 dfs = []
 
+# Sidebar para upload dos arquivos
 with st.sidebar:
     uploaded_files = st.file_uploader(
         "Coloque seu arquivo CSV", accept_multiple_files=True
     )
 
-    #Leitura e Importação do DataFrame
     for uploaded_file in uploaded_files:
-        #Leitura do DataFrame do arquivo
         df = pd.read_csv(uploaded_file, encoding='utf-8')
         
-        #Exclsão de Linhas vazias
         df = df.dropna(how="all", axis=1)
 
-        #Conversão das colunas Object para String
         df["Status"] = df["Status"].astype('string')
         df["Tipo"] = df["Tipo"].astype('string')
+        
         df["Usuarios ativos"] = df["Usuarios ativos"].astype(float)
         df["Usuarios inativos"] = df["Usuarios inativos"].astype(float)
         df["Total de usuarios"] = df["Total de usuarios"].astype(float)
@@ -29,15 +29,10 @@ with st.sidebar:
         
         dfs.append(df)
 
-#Arrays de todas as colunas do dataframe para utilização no select e no multiselect
-# de forma que vao agir dinamicamente  
+# Opções de seleção
 opcao = {
-    "graficos": ["Linha", "Barras", "Pizza", "Dispersão", "Área", "Candlestick"],
-    "opcoes": [
-        "Instancia",
-        "Tipo",
-        "Status"
-    ],
+    "graficos": ["Linha", "Barras", "Pizza", "Histograma", "Dispersão", "Área", "Candlestick"],
+    "opcoes": ["Instancia", "Tipo", "Status"],
     "opcoes_filtro": [
         "Usuarios ativos",
         "Usuarios inativos",
@@ -58,67 +53,156 @@ opcao = {
     ]
 }
 
-#Criação da função dinamica para gerar graficos conforme a seleção do usuario
-def DashBoard(coluna_x, coluna_y):
-    for df in dfs:
-        if coluna_x in df.columns and coluna_y in df.columns:
-            if pd.api.types.is_numeric_dtype(df[coluna_x]) and pd.api.types.is_numeric_dtype(df[coluna_y]):
-                
-                if add_select == "Linha":
-                    graph = px.line(df, x=coluna_x, y=coluna_y, color=df[select_usu_tipe], title=f"{coluna_x} X {coluna_y}")
-                    st.plotly_chart(graph)
-                    
-                if add_select == "Pizza":
-                    graph = px.pie(df, values=coluna_x, names=df[select_usu_tipe], title=f"{coluna_x}")
-                    graph.update_traces(textposition='inside', textinfo='percent+label')
-                    st.plotly_chart(graph)
-                    
-                    graph = px.pie(df, values=coluna_y, names=df[select_usu_tipe], title=f"{coluna_y}")
-                    graph.update_traces(textposition='inside', textinfo='percent+label')
-                    st.plotly_chart(graph)
-        
-#Criação do select principal
+# Sidebar para seleção de gráfico, agrupamento e agregação
 with st.sidebar:
     add_select = st.selectbox(
-        "Selecione o tipo de grafico",
+        "Selecione o tipo de gráfico",
         opcao["graficos"],
         index=None,
-        placeholder="Clique e selecione", 
+        placeholder="Clique e selecione"
     )
 
-def filtro_box(filtro_escolhido = ""):
-    novos_itens = opcao["opcoes_filtro"]
-    try:
-        novos_itens.remove(filtro_escolhido)
-        return novos_itens
-    except:
-        return
-
-#Criação do sidebar de usuarios
-with st.sidebar:
     select_usu_tipe = st.selectbox(
-        "Escolha seu tipo",
+        "Agrupar por",
         opcao["opcoes"],
         index=None,
         placeholder="Clique e selecione"
     )
-    
+
     add_filter = st.selectbox(
-        "Escolha seu filtro",
+        "Escolha seu filtro X",
         opcao["opcoes_filtro"],
         index=None,
         placeholder="Clique e selecione"
     )
-    
-    #Criação do sidebar de multiselects que contrapõe o select de usuarios
+
+    def filtro_box(filtro_escolhido=""):
+        novos_itens = opcao["opcoes_filtro"].copy()
+        try:
+            novos_itens.remove(filtro_escolhido)
+            return novos_itens
+        except:
+            return novos_itens
+
     add_filter_coparacao = st.selectbox(
-        "Escolha seu filtro",
+        "Escolha seu filtro Y",
         filtro_box(add_filter),
         index=None,
         placeholder="Clique e selecione"
     )
 
-#Chamada da função
-if add_filter and add_filter_coparacao:
-    DashBoard(add_filter, add_filter_coparacao)
+    agg_func = st.selectbox(
+        "Selecione a forma de agrupamento de dados",
+        ["Soma", "Média", "Máximo", "Mínimo"],
+        index=0
+    )
 
+# Mapeamento das funções de agregação
+agg_map = {
+    "Soma": "sum",
+    "Máximo": "max",
+    "Média": "mean",
+    "Mínimo": "min"
+}
+
+# Função principal do Dashboard
+def DashBoard(coluna_x, coluna_y):
+    for df in dfs:
+        if coluna_x in df.columns and coluna_y in df.columns:
+            if pd.api.types.is_numeric_dtype(df[coluna_x]) and pd.api.types.is_numeric_dtype(df[coluna_y]):
+
+                df_grouped = df.groupby(select_usu_tipe).agg({
+                    coluna_x: agg_map[agg_func],
+                    coluna_y: agg_map[agg_func]
+                }).reset_index()
+
+                if add_select == "Linha":
+                    graph = px.line(
+                        df_grouped,
+                        x=coluna_x,
+                        y=coluna_y,
+                        color=select_usu_tipe,
+                        title=f"{coluna_x} X {coluna_y} ({agg_func})"
+                    )
+                    st.plotly_chart(graph)
+                
+                elif add_select == "Pizza":
+                    # Agrupa pela categoria e soma a métrica
+                    df_grouped = df.groupby(select_usu_tipe).agg({
+                        add_filter: agg_map[agg_func]
+                    }).reset_index()
+
+                    fig = px.pie(
+                        df_grouped,
+                        names=select_usu_tipe,
+                        values=add_filter,
+                        title=f"{add_filter} por {select_usu_tipe} ({agg_func})"
+                    )
+                    st.plotly_chart(fig)
+
+                elif add_select == "Dispersão":
+                    graph = px.scatter(
+                        df_grouped,
+                        x=coluna_x,
+                        y=coluna_y,
+                        color=select_usu_tipe,
+                        title=f"{coluna_x} X {coluna_y} ({agg_func})"
+                    )
+                    st.plotly_chart(graph)
+
+                elif add_select == "Barras":
+                    graph = px.bar(
+                        df_grouped,
+                        x=coluna_x,
+                        y=coluna_y,
+                        color=select_usu_tipe,
+                        title=f"{coluna_x} X {coluna_y} ({agg_func})"
+                    )
+                    st.plotly_chart(graph)
+
+                elif add_select == "Histograma":
+                    graph = px.histogram(
+                        df_grouped,
+                        x=coluna_x,
+                        y=coluna_y,
+                        color=select_usu_tipe,
+                        title=f"{coluna_x} X {coluna_y} ({agg_func})"
+                    )
+                    st.plotly_chart(graph)
+
+                elif add_select == "Área":
+                    graph = px.area(
+                        df_grouped,
+                        x=coluna_x,
+                        y=coluna_y,
+                        color=select_usu_tipe,
+                        title=f"{coluna_x} X {coluna_y} (Área - {agg_func})"
+                    )
+                    st.plotly_chart(graph)
+
+                elif add_select == "Candlestick":
+                    try:
+                        df_candle = df.groupby(select_usu_tipe).agg({
+                            coluna_x: 'first',
+                            coluna_y: ['min', 'max', 'first', 'last']
+                        }).reset_index()
+
+                        df_candle.columns = [select_usu_tipe, 'X', 'low', 'high', 'open', 'close']
+
+                        fig = go.Figure(data=[go.Candlestick(
+                            x=df_candle[select_usu_tipe],
+                            open=df_candle['open'],
+                            high=df_candle['high'],
+                            low=df_candle['low'],
+                            close=df_candle['close']
+                        )])
+
+                        fig.update_layout(title=f'Candlestick {coluna_x} X {coluna_y}')
+                        st.plotly_chart(fig)
+
+                    except Exception as e:
+                        st.error(f"Erro ao gerar candlestick: {e}")
+
+# Executa se as seleções estiverem feitas
+if add_filter and add_filter_coparacao and add_select and select_usu_tipe:
+    DashBoard(add_filter, add_filter_coparacao)
