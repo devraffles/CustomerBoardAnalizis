@@ -31,7 +31,7 @@ with st.sidebar:
 
 # Opções de seleção
 opcao = {
-    "graficos": ["Linha", "Barras", "Pizza", "Histograma", "Dispersão", "Área", "Candlestick"],
+    "graficos": ["Barras", "Pizza", "Histograma", "Dispersão", "Área", "Candlestick"],
     "opcoes": ["Instancia", "Tipo", "Status"],
     "opcoes_filtro": [
         "Usuarios ativos",
@@ -51,6 +51,14 @@ opcao = {
         "CDN (Outros) (GB)",
         "Duracao total dos videos (minutos)"
     ]
+}
+
+# Mapeamento das funções de agregação
+agg_map = {
+    "Soma": "sum",
+    "Máximo": "max",
+    "Média": "mean",
+    "Mínimo": "min"
 }
 
 # Sidebar para seleção de gráfico, agrupamento e agregação
@@ -93,17 +101,9 @@ with st.sidebar:
 
     agg_func = st.selectbox(
         "Selecione a forma de agrupamento de dados",
-        ["Soma", "Média", "Máximo", "Mínimo"],
+        agg_map,
         index=0
     )
-
-# Mapeamento das funções de agregação
-agg_map = {
-    "Soma": "sum",
-    "Máximo": "max",
-    "Média": "mean",
-    "Mínimo": "min"
-}
 
 # Função principal do Dashboard
 def DashBoard(coluna_x, coluna_y):
@@ -116,17 +116,7 @@ def DashBoard(coluna_x, coluna_y):
                     coluna_y: agg_map[agg_func]
                 }).reset_index()
 
-                if add_select == "Linha":
-                    graph = px.line(
-                        df_grouped,
-                        x=coluna_x,
-                        y=coluna_y,
-                        color=select_usu_tipe,
-                        title=f"{coluna_x} X {coluna_y} ({agg_func})"
-                    )
-                    st.plotly_chart(graph)
-                
-                elif add_select == "Pizza":
+                if add_select == "Pizza":
                     # Agrupa pela categoria e soma a métrica
                     df_grouped = df.groupby(select_usu_tipe).agg({
                         add_filter: agg_map[agg_func]
@@ -138,6 +128,7 @@ def DashBoard(coluna_x, coluna_y):
                         values=add_filter,
                         title=f"{add_filter} por {select_usu_tipe} ({agg_func})"
                     )
+                    fig.update_traces(textposition='inside', textinfo='percent+label')
                     st.plotly_chart(fig)
 
                 elif add_select == "Dispersão":
