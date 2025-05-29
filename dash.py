@@ -130,6 +130,20 @@ def DashBoard(coluna_x, coluna_y):
                     )
                     fig.update_traces(textposition='inside', textinfo='percent+label')
                     st.plotly_chart(fig)
+                    
+                    # Agrupa pela categoria e soma a métrica
+                    df_grouped = df.groupby(select_usu_tipe).agg({
+                        add_filter_coparacao: agg_map[agg_func]
+                    }).reset_index()
+
+                    fig_coparacao = px.pie(
+                        df_grouped,
+                        names=select_usu_tipe,
+                        values=add_filter_coparacao,
+                        title=f"{add_filter_coparacao} por {select_usu_tipe} ({agg_func})"
+                    )
+                    fig_coparacao.update_traces(textposition='inside', textinfo='percent+label')
+                    st.plotly_chart(fig_coparacao)
 
                 elif add_select == "Dispersão":
                     graph = px.scatter(
